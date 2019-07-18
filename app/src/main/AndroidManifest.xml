@@ -41,7 +41,7 @@
             <intent-filter>
                 <action android:name="app.tivi.HANDLE_AUTHORIZATION_RESPONSE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="app.tivi" />
+                <data android:scheme="${applicationId}" />
             </intent-filter>
         </activity>
 
