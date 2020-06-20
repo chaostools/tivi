@@ -18,32 +18,32 @@ package app.tivi.data.repositories.followedshows
 
 import androidx.paging.DataSource
 import app.tivi.data.DatabaseTransactionRunner
-import app.tivi.data.daos.EntityInserter
 import app.tivi.data.daos.FollowedShowsDao
 import app.tivi.data.entities.FollowedShowEntry
 import app.tivi.data.entities.PendingAction
 import app.tivi.data.entities.SortOption
 import app.tivi.data.resultentities.FollowedShowEntryWithShow
 import app.tivi.data.syncers.syncerForEntity
+import app.tivi.data.views.FollowedShowsWatchStats
 import app.tivi.util.Logger
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class FollowedShowsStore @Inject constructor(
     private val transactionRunner: DatabaseTransactionRunner,
-    private val entityInserter: EntityInserter,
     private val followedShowsDao: FollowedShowsDao,
     logger: Logger
 ) {
     var traktListId: Int? = null
 
     private val syncer = syncerForEntity(
-            followedShowsDao,
-            { it.traktId },
-            { entity, id -> entity.copy(id = id ?: 0) },
-            logger
+        followedShowsDao,
+        { it.traktId },
+        { entity, id -> entity.copy(id = id ?: 0) },
+        logger
     )
 
     suspend fun getEntryForShowId(showId: Long): FollowedShowEntry? = followedShowsDao.entryWithShowId(showId)
@@ -60,7 +60,10 @@ class FollowedShowsStore @Inject constructor(
 
     suspend fun deleteEntriesInIds(ids: List<Long>) = followedShowsDao.deleteWithIds(ids)
 
-    fun observeForPaging(sort: SortOption, filter: String?): DataSource.Factory<Int, FollowedShowEntryWithShow> {
+    fun observeForPaging(
+        sort: SortOption,
+        filter: String?
+    ): DataSource.Factory<Int, FollowedShowEntryWithShow> {
         val filtered = filter != null && filter.isNotEmpty()
         return when (sort) {
             SortOption.SUPER_SORT -> {
@@ -94,9 +97,17 @@ class FollowedShowsStore @Inject constructor(
         }
     }
 
-    fun observeIsShowFollowed(showId: Long): Observable<Boolean> {
+    fun observeIsShowFollowed(showId: Long): Flow<Boolean> {
         return followedShowsDao.entryCountWithShowIdNotPendingDeleteObservable(showId)
-                .map { it > 0 }
+            .map { it > 0 }
+    }
+
+    fun observeNextShowToWatch(): Flow<FollowedShowEntryWithShow?> {
+        return followedShowsDao.observeNextShowToWatch()
+    }
+
+    fun observeShowViewStats(showId: Long): Flow<FollowedShowsWatchStats> {
+        return followedShowsDao.entryShowViewStats(showId)
     }
 
     suspend fun isShowFollowed(showId: Long) = followedShowsDao.entryCountWithShowId(showId) > 0
@@ -105,5 +116,5 @@ class FollowedShowsStore @Inject constructor(
         syncer.sync(followedShowsDao.entries(), entities)
     }
 
-    suspend fun save(entry: FollowedShowEntry) = entityInserter.insertOrUpdate(followedShowsDao, entry)
+    suspend fun save(entry: FollowedShowEntry) = followedShowsDao.insertOrUpdate(entry)
 }

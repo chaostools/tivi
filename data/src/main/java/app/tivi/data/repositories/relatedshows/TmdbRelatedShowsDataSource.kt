@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google LLC
+ * Copyright 2020 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ import javax.inject.Inject
 class TmdbRelatedShowsDataSource @Inject constructor(
     private val tmdbIdMapper: ShowIdToTmdbIdMapper,
     private val tmdb: Tmdb,
-    private val showMapper: TmdbBaseShowToTiviShow
-) : RelatedShowsDataSource {
+    showMapper: TmdbBaseShowToTiviShow
+) {
     private val entryMapper = object : IndexedMapper<BaseTvShow, RelatedShowEntry> {
         override suspend fun map(index: Int, from: BaseTvShow): RelatedShowEntry {
             return RelatedShowEntry(showId = 0, otherShowId = 0, orderIndex = index)
@@ -43,9 +43,9 @@ class TmdbRelatedShowsDataSource @Inject constructor(
 
     private val resultMapper = unwrapTmdbShowResults(pairMapperOf(showMapper, entryMapper))
 
-    override suspend fun getRelatedShows(showId: Long): Result<List<Pair<TiviShow, RelatedShowEntry>>> {
-        return tmdb.tvService().similar(tmdbIdMapper.map(showId), 1, null)
-                .executeWithRetry()
-                .toResult(resultMapper)
+    suspend operator fun invoke(showId: Long): Result<List<Pair<TiviShow, RelatedShowEntry>>> {
+        return tmdb.tvService().recommendations(tmdbIdMapper.map(showId), 1, null)
+            .executeWithRetry()
+            .toResult(resultMapper)
     }
 }

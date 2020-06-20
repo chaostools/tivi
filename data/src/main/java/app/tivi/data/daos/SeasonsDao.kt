@@ -22,13 +22,13 @@ import androidx.room.Transaction
 import app.tivi.data.entities.Season
 import app.tivi.data.entities.Season.Companion.NUMBER_SPECIALS
 import app.tivi.data.resultentities.SeasonWithEpisodesAndWatches
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
 
 @Dao
-abstract class SeasonsDao : EntityDao<Season> {
+abstract class SeasonsDao : EntityDao<Season>() {
     @Transaction
     @Query("SELECT * FROM seasons WHERE show_id = :showId ORDER BY number=$NUMBER_SPECIALS, number")
-    abstract fun seasonsWithEpisodesForShowId(showId: Long): Observable<List<SeasonWithEpisodesAndWatches>>
+    abstract fun seasonsWithEpisodesForShowId(showId: Long): Flow<List<SeasonWithEpisodesAndWatches>>
 
     @Query("SELECT * FROM seasons WHERE show_id = :showId ORDER BY number=$NUMBER_SPECIALS, number")
     abstract suspend fun seasonsForShowId(showId: Long): List<Season>
@@ -48,12 +48,14 @@ abstract class SeasonsDao : EntityDao<Season> {
     @Query("SELECT * FROM seasons WHERE trakt_id = :traktId")
     abstract suspend fun seasonWithTraktId(traktId: Int): Season?
 
-    @Query("""
+    @Query(
+        """
         SELECT id from seasons WHERE 
           show_id = (SELECT show_id from SEASONS WHERE id = :seasonId)
           AND number != $NUMBER_SPECIALS
           AND number < (SELECT number from SEASONS WHERE id = :seasonId)
-    """)
+    """
+    )
     abstract suspend fun showPreviousSeasonIds(seasonId: Long): LongArray
 
     @Query("UPDATE seasons SET ignored = :ignored WHERE id = :seasonId")

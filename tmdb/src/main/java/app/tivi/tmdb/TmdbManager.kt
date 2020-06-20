@@ -20,10 +20,9 @@ import app.tivi.extensions.fetchBodyWithRetry
 import app.tivi.util.AppCoroutineDispatchers
 import com.uwetrottmann.tmdb2.Tmdb
 import com.uwetrottmann.tmdb2.entities.Configuration
-import io.reactivex.Observable
-import io.reactivex.subjects.BehaviorSubject
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,34 +32,31 @@ class TmdbManager @Inject constructor(
     private val dispatchers: AppCoroutineDispatchers,
     private val tmdbClient: Tmdb
 ) {
-    private val imageProviderSubject = BehaviorSubject.createDefault(TmdbImageUrlProvider())
-    val imageProviderObservable: Observable<TmdbImageUrlProvider>
-        get() = imageProviderSubject
+    private val imageProviderSubject = ConflatedBroadcastChannel(TmdbImageUrlProvider())
+    val imageProviderFlow: Flow<TmdbImageUrlProvider> = imageProviderSubject.asFlow()
 
-    init {
-        refreshConfiguration()
-    }
+    fun getLatestImageProvider() = imageProviderSubject.value
 
-    private fun refreshConfiguration() {
-        GlobalScope.launch(dispatchers.main) {
-            try {
-                val config = withContext(dispatchers.io) {
-                    tmdbClient.configurationService().configuration().fetchBodyWithRetry()
-                }
-                onConfigurationLoaded(config)
-            } catch (e: Exception) {
-                // TODO
+    suspend fun refreshConfiguration() {
+        try {
+            val config = withContext(dispatchers.io) {
+                tmdbClient.configurationService().configuration().fetchBodyWithRetry()
             }
+            onConfigurationLoaded(config)
+        } catch (e: Exception) {
+            // TODO
         }
     }
 
     private fun onConfigurationLoaded(configuration: Configuration) {
-        configuration.images?.let {
+        configuration.images?.also { images ->
             val newProvider = TmdbImageUrlProvider(
-                    it.secure_base_url!!,
-                    it.poster_sizes ?: emptyList(),
-                    it.backdrop_sizes ?: emptyList())
-            imageProviderSubject.onNext(newProvider)
+                images.secure_base_url!!,
+                images.poster_sizes ?: emptyList(),
+                images.backdrop_sizes ?: emptyList(),
+                images.logo_sizes ?: emptyList()
+            )
+            imageProviderSubject.offer(newProvider)
         }
     }
 }

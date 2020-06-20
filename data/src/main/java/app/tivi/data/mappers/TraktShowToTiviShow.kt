@@ -18,25 +18,55 @@ package app.tivi.data.mappers
 
 import app.tivi.data.entities.TiviShow
 import com.uwetrottmann.trakt5.entities.Show
+import org.threeten.bp.DayOfWeek
+import org.threeten.bp.LocalTime
+import org.threeten.bp.ZoneId
+import org.threeten.bp.format.TextStyle
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class TraktShowToTiviShow @Inject constructor() : Mapper<Show, TiviShow> {
+class TraktShowToTiviShow @Inject constructor(
+    private val statusMapper: TraktStatusToShowStatus
+) : Mapper<Show, TiviShow> {
     override suspend fun map(from: Show) = TiviShow(
-            traktId = from.ids.trakt,
-            tmdbId = from.ids.tmdb,
-            imdbId = from.ids.imdb,
-            title = from.title,
-            summary = from.overview,
-            homepage = from.homepage,
-            traktRating = from.rating?.toFloat(),
-            certification = from.certification,
-            runtime = from.runtime,
-            network = from.network,
-            country = from.country,
-            firstAired = from.first_aired,
-            _genres = from.genres?.joinToString(","),
-            traktDataUpdate = from.updated_at
+        traktId = from.ids?.trakt,
+        tmdbId = from.ids?.tmdb,
+        imdbId = from.ids?.imdb,
+        title = from.title,
+        summary = from.overview,
+        homepage = from.homepage,
+        traktRating = from.rating?.toFloat(),
+        traktVotes = from.votes,
+        certification = from.certification,
+        runtime = from.runtime,
+        network = from.network,
+        country = from.country,
+        firstAired = from.first_aired,
+        _genres = from.genres?.joinToString(","),
+        traktDataUpdate = from.updated_at,
+        status = from.status?.let {
+            statusMapper.map(it)
+        },
+        airsDay = from.airs?.day?.let { dayString ->
+            DayOfWeek.values().firstOrNull { day ->
+                dayString.equals(day.getDisplayName(TextStyle.FULL, Locale.getDefault()), true)
+            }
+        },
+        airsTime = from.airs?.time?.let {
+            try {
+                LocalTime.parse(it)
+            } catch (e: Exception) {
+                null
+            }
+        },
+        airsTimeZone = from.airs?.timezone?.let {
+            try {
+                ZoneId.of(it)
+            } catch (e: Exception) {
+                null
+            }
+        }
     )
 }

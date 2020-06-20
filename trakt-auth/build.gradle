@@ -32,7 +32,7 @@ android {
 
     defaultConfig {
         minSdkVersion buildConfig.minSdk
-        manifestPlaceholders += ['appAuthRedirectScheme': 'app.tivi']
+        manifestPlaceholders += ['appAuthRedirectScheme': 'empty']
     }
 
     compileOptions {
@@ -42,16 +42,13 @@ android {
 }
 
 dependencies {
-    implementation project(":base")
-    implementation project(":base-android")
-    implementation project(":data")
-    implementation project(":trakt")
-    implementation project(':interactors')
+    implementation project(':base')
+    implementation project(':base-android')
+    implementation project(':data')
+    api project(':trakt')
 
-    implementation Libs.RxJava.rxJava
-    implementation Libs.RxJava.rxKotlin
-
-    kapt Libs.Dagger.compiler
+    implementation Libs.Hilt.library
+    kapt Libs.Hilt.compiler
 
     implementation Libs.AndroidX.browser
     implementation Libs.AndroidX.coreKtx

@@ -17,43 +17,53 @@
 package app.tivi.data.dao
 
 import android.database.sqlite.SQLiteConstraintException
+import app.tivi.data.DatabaseModuleBinds
+import app.tivi.data.DatabaseTest
+import app.tivi.data.TiviDatabase
 import app.tivi.data.daos.SeasonsDao
-import app.tivi.utils.BaseDatabaseTest
 import app.tivi.utils.deleteShow
 import app.tivi.utils.insertShow
-import app.tivi.utils.runBlockingTest
 import app.tivi.utils.s0
 import app.tivi.utils.s1
 import app.tivi.utils.s1_id
 import app.tivi.utils.s2
 import app.tivi.utils.showId
+import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.UninstallModules
+import kotlinx.coroutines.test.runBlockingTest
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.nullValue
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import javax.inject.Inject
 
-class SeasonsTest : BaseDatabaseTest() {
-    private lateinit var seasonsDao: SeasonsDao
+@UninstallModules(DatabaseModuleBinds::class)
+@HiltAndroidTest
+class SeasonsTest : DatabaseTest() {
+    @Inject lateinit var database: TiviDatabase
+    @Inject lateinit var seasonsDao: SeasonsDao
 
-    override fun setup() {
-        super.setup()
+    @Before
+    fun setup() {
+        hiltRule.inject()
 
         runBlockingTest {
-            seasonsDao = db.seasonsDao()
             // We'll assume that there's a show in the db
-            insertShow(db)
+            insertShow(database)
         }
     }
 
     @Test
-    fun insertSeason() = runBlockingTest {
+    fun insertSeason() = testScope.runBlockingTest {
         seasonsDao.insert(s1)
 
         assertThat(seasonsDao.seasonWithId(s1_id), `is`(s1))
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun insert_withSameTraktId() = runBlockingTest {
+    fun insert_withSameTraktId() = testScope.runBlockingTest {
         seasonsDao.insert(s1)
 
         // Make a copy with a 0 id
@@ -63,31 +73,37 @@ class SeasonsTest : BaseDatabaseTest() {
     }
 
     @Test
-    fun specialsOrder() = runBlockingTest {
+    fun specialsOrder() = testScope.runBlockingTest {
         seasonsDao.insert(s0)
         seasonsDao.insert(s1)
         seasonsDao.insert(s2)
 
         // Specials should always be last
-        assertThat(seasonsDao.seasonsForShowId(showId),
-                `is`(listOf(s1, s2, s0))
+        assertThat(
+            seasonsDao.seasonsForShowId(showId),
+            `is`(listOf(s1, s2, s0))
         )
     }
 
     @Test
-    fun deleteSeason() = runBlockingTest {
+    fun deleteSeason() = testScope.runBlockingTest {
         seasonsDao.insert(s1)
-        seasonsDao.delete(s1)
+        seasonsDao.deleteEntity(s1)
 
         assertThat(seasonsDao.seasonWithId(s1_id), `is`(nullValue()))
     }
 
     @Test
-    fun deleteShow_deletesSeason() = runBlockingTest {
+    fun deleteShow_deletesSeason() = testScope.runBlockingTest {
         seasonsDao.insert(s1)
         // Now delete show
-        deleteShow(db)
+        deleteShow(database)
 
         assertThat(seasonsDao.seasonWithId(s1_id), `is`(nullValue()))
+    }
+
+    @After
+    fun cleanup() {
+        testScope.cleanupTestCoroutines()
     }
 }

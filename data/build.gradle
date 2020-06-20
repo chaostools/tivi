@@ -20,16 +20,16 @@ import app.tivi.buildsrc.Libs
 apply plugin: 'kotlin'
 
 dependencies {
-    compile project(":base")
-    compile project(":trakt")
-    compile project(":tmdb")
+    api project(':base')
+    api project(':trakt')
+    api project(':tmdb')
 
-    compile Libs.AndroidX.Room.common
-    compile Libs.AndroidX.Room.ktx
-    compile Libs.AndroidX.Paging.common
+    api Libs.AndroidX.Room.common
+    implementation Libs.AndroidX.collection
 
-    compile Libs.RxJava.rxJava
-    compile Libs.RxJava.rxKotlin
+    api Libs.store
 
-    compile Libs.threeTenBpNoTzdb
+    api Libs.AndroidX.Paging.common
+
+    api Libs.threeTenBpNoTzdb
 }

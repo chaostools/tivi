@@ -17,6 +17,7 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="app.tivi">
 
     <uses-permission android:name="android.permission.INTERNET" />
@@ -37,23 +38,33 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-            <intent-filter>
-                <action android:name="app.tivi.HANDLE_AUTHORIZATION_RESPONSE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="app.tivi" />
-            </intent-filter>
         </activity>
 
         <activity
             android:name=".showdetails.ShowDetailsActivity"
             android:parentActivityName=".home.HomeActivity"
-            android:theme="@style/Theme.Tivi.ShowDetails" />
+            android:theme="@style/Theme.Tivi.ShowDetails">
+
+            <nav-graph android:value="@navigation/show_details_nav_graph" />
+
+        </activity>
 
         <activity
-            android:name=".settings.SettingsActivity"
-            android:label="@string/settings_title"
-            android:theme="@style/Theme.Tivi.Settings" />
+            android:name="net.openid.appauth.RedirectUriReceiverActivity"
+            tools:node="replace">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="auth"
+                    android:path="/oauth2callback"
+                    android:scheme="${applicationId}" />
+
+            </intent-filter>
+        </activity>
 
         <meta-data
             android:name="preloaded_fonts"

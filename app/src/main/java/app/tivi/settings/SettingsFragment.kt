@@ -17,29 +17,36 @@
 package app.tivi.settings
 
 import android.os.Bundle
-import androidx.browser.customtabs.CustomTabsIntent
-import androidx.core.net.toUri
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
-import app.tivi.BuildConfig
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.commitNow
+import androidx.navigation.fragment.findNavController
 import app.tivi.R
-import app.tivi.extensions.resolveThemeColor
+import app.tivi.databinding.FragmentSettingsBinding
 
-class SettingsFragment : PreferenceFragmentCompat() {
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.preferences, rootKey)
+class SettingsFragment : Fragment() {
+    private lateinit var binding: FragmentSettingsBinding
 
-        findPreference<Preference>("privacy_policy")?.setOnPreferenceClickListener {
-            CustomTabsIntent.Builder()
-                    .setToolbarColor(requireContext().resolveThemeColor(R.attr.colorPrimaryVariant))
-                    .build()
-                    .launchUrl(requireContext(), getString(R.string.privacy_policy_url).toUri())
-            true
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        binding = FragmentSettingsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.settingsToolbar.setNavigationOnClickListener {
+            findNavController().navigateUp()
         }
 
-        findPreference<Preference>("version")?.apply {
-            summary = getString(R.string.settings_app_version_summary,
-                    BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE)
+        childFragmentManager.commitNow {
+            replace(R.id.settings_container, SettingsPreferenceFragment())
         }
     }
 }

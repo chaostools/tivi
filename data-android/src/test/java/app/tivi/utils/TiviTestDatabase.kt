@@ -27,6 +27,7 @@ import app.tivi.data.entities.EpisodeWatchEntry
 import app.tivi.data.entities.FollowedShowEntry
 import app.tivi.data.entities.LastRequest
 import app.tivi.data.entities.PopularShowEntry
+import app.tivi.data.entities.RecommendedShowEntry
 import app.tivi.data.entities.RelatedShowEntry
 import app.tivi.data.entities.Season
 import app.tivi.data.entities.ShowTmdbImage
@@ -40,28 +41,29 @@ import app.tivi.data.views.FollowedShowsNextToWatch
 import app.tivi.data.views.FollowedShowsWatchStats
 
 @Database(
-        entities = [
-            TiviShow::class,
-            TrendingShowEntry::class,
-            PopularShowEntry::class,
-            TraktUser::class,
-            WatchedShowEntry::class,
-            FollowedShowEntry::class,
-            Season::class,
-            Episode::class,
-            RelatedShowEntry::class,
-            EpisodeWatchEntry::class,
-            LastRequest::class,
-            ShowTmdbImage::class,
-            FakeTiviShowFts::class
-        ],
-        views = [
-            FollowedShowsWatchStats::class,
-            FollowedShowsLastWatched::class,
-            FollowedShowsNextToWatch::class
-        ],
-        version = 1,
-        exportSchema = false
+    entities = [
+        TiviShow::class,
+        TrendingShowEntry::class,
+        PopularShowEntry::class,
+        TraktUser::class,
+        WatchedShowEntry::class,
+        FollowedShowEntry::class,
+        Season::class,
+        Episode::class,
+        RelatedShowEntry::class,
+        EpisodeWatchEntry::class,
+        LastRequest::class,
+        ShowTmdbImage::class,
+        RecommendedShowEntry::class,
+        FakeTiviShowFts::class
+    ],
+    views = [
+        FollowedShowsWatchStats::class,
+        FollowedShowsLastWatched::class,
+        FollowedShowsNextToWatch::class
+    ],
+    version = 1,
+    exportSchema = false
 )
 @TypeConverters(TiviTypeConverters::class)
 abstract class TiviTestDatabase : RoomDatabase(), TiviDatabase {

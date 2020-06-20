@@ -20,7 +20,6 @@ import app.tivi.data.entities.Episode
 import app.tivi.data.entities.Result
 import app.tivi.data.mappers.ShowIdToTmdbIdMapper
 import app.tivi.data.mappers.TmdbEpisodeToEpisode
-import app.tivi.data.mappers.toLambda
 import app.tivi.extensions.executeWithRetry
 import app.tivi.extensions.toResult
 import com.uwetrottmann.tmdb2.Tmdb
@@ -31,10 +30,14 @@ class TmdbEpisodeDataSource @Inject constructor(
     private val tmdb: Tmdb,
     private val episodeMapper: TmdbEpisodeToEpisode
 ) : EpisodeDataSource {
-    override suspend fun getEpisode(showId: Long, seasonNumber: Int, episodeNumber: Int): Result<Episode> {
+    override suspend fun getEpisode(
+        showId: Long,
+        seasonNumber: Int,
+        episodeNumber: Int
+    ): Result<Episode> {
         return tmdb.tvEpisodesService()
-                .episode(tmdbIdMapper.map(showId), seasonNumber, episodeNumber, null)
-                .executeWithRetry()
-                .toResult(episodeMapper.toLambda())
+            .episode(tmdbIdMapper.map(showId), seasonNumber, episodeNumber, null)
+            .executeWithRetry()
+            .toResult(episodeMapper::map)
     }
 }

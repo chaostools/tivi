@@ -20,10 +20,10 @@ import androidx.room.Dao
 import androidx.room.Query
 import app.tivi.data.entities.EpisodeWatchEntry
 import app.tivi.data.entities.PendingAction
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
 
 @Dao
-abstract class EpisodeWatchEntryDao : EntityDao<EpisodeWatchEntry> {
+abstract class EpisodeWatchEntryDao : EntityDao<EpisodeWatchEntry>() {
     @Query("SELECT * FROM episode_watch_entries WHERE episode_id = :episodeId")
     abstract suspend fun watchesForEpisode(episodeId: Long): List<EpisodeWatchEntry>
 
@@ -31,7 +31,7 @@ abstract class EpisodeWatchEntryDao : EntityDao<EpisodeWatchEntry> {
     abstract suspend fun watchCountForEpisode(episodeId: Long): Int
 
     @Query("SELECT * FROM episode_watch_entries WHERE episode_id = :episodeId")
-    abstract fun watchesForEpisodeObservable(episodeId: Long): Observable<List<EpisodeWatchEntry>>
+    abstract fun watchesForEpisodeObservable(episodeId: Long): Flow<List<EpisodeWatchEntry>>
 
     @Query("SELECT * FROM episode_watch_entries WHERE id = :id")
     abstract suspend fun entryWithId(id: Long): EpisodeWatchEntry?
@@ -54,22 +54,29 @@ abstract class EpisodeWatchEntryDao : EntityDao<EpisodeWatchEntry> {
         return entriesForShowIdWithPendingAction(showId, PendingAction.DELETE.value)
     }
 
-    @Query("""
+    @Query(
+        """
         SELECT ew.* FROM episode_watch_entries AS ew
         INNER JOIN episodes AS eps ON ew.episode_id = eps.id
         INNER JOIN seasons AS s ON eps.season_id = s.id
         INNER JOIN shows ON s.show_id = shows.id
         WHERE shows.id = :showId AND ew.pending_action = :pendingAction
-    """)
-    internal abstract suspend fun entriesForShowIdWithPendingAction(showId: Long, pendingAction: String): List<EpisodeWatchEntry>
+    """
+    )
+    internal abstract suspend fun entriesForShowIdWithPendingAction(
+        showId: Long,
+        pendingAction: String
+    ): List<EpisodeWatchEntry>
 
-    @Query("""
+    @Query(
+        """
         SELECT ew.* FROM episode_watch_entries AS ew
         INNER JOIN episodes AS eps ON ew.episode_id = eps.id
         INNER JOIN seasons AS s ON eps.season_id = s.id
         INNER JOIN shows ON s.show_id = shows.id
         WHERE shows.id = :showId
-    """)
+    """
+    )
     abstract suspend fun entriesForShowId(showId: Long): List<EpisodeWatchEntry>
 
     @Query("UPDATE episode_watch_entries SET pending_action = :pendingAction WHERE id IN (:ids)")

@@ -19,29 +19,32 @@ package app.tivi.tmdb
 import com.uwetrottmann.tmdb2.Tmdb
 import dagger.Module
 import dagger.Provides
-import okhttp3.Cache
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import java.io.File
+import java.util.concurrent.TimeUnit
 import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
-class TmdbModule {
+object TmdbModule {
+    @Provides
+    fun provideTmdbImageUrlProvider(tmdbManager: TmdbManager): TmdbImageUrlProvider {
+        return tmdbManager.getLatestImageProvider()
+    }
+
     @Singleton
     @Provides
     fun provideTmdb(
-        @Named("cache") cacheDir: File,
-        interceptor: HttpLoggingInterceptor,
+        client: OkHttpClient,
         @Named("tmdb-api") apiKey: String
     ): Tmdb {
         return object : Tmdb(apiKey) {
-            override fun setOkHttpClientDefaults(builder: OkHttpClient.Builder) {
-                super.setOkHttpClientDefaults(builder)
-                builder.apply {
-                    addInterceptor(interceptor)
-                    cache(Cache(File(cacheDir, "tmdb_cache"), 10 * 1024 * 1024))
-                }
+            override fun okHttpClient(): OkHttpClient {
+                return client.newBuilder().apply {
+                    setOkHttpClientDefaults(this)
+                    connectTimeout(20, TimeUnit.SECONDS)
+                    readTimeout(20, TimeUnit.SECONDS)
+                    writeTimeout(20, TimeUnit.SECONDS)
+                }.build()
             }
         }
     }

@@ -24,8 +24,11 @@
     <style name="Base.Theme.Tivi" parent="Platform.Theme.Tivi">
         <item name="actionBarTheme">@style/ThemeOverlay.Tivi.ActionBar</item>
 
+        <item name="windowActionModeOverlay">true</item>
+
         <!-- Default widget styles -->
         <item name="toolbarStyle">@style/Widget.Tivi.Toolbar</item>
+        <item name="appBarLayoutStyle">@style/Widget.MaterialComponents.AppBarLayout.Surface</item>
 
         <!-- Type styles -->
         <item name="textAppearanceHeadline1">@style/TextAppearance.Tivi.Headline1</item>
@@ -57,9 +60,6 @@
         <item name="colorSecondary">@color/tivi_mtrl_orange_700</item>
         <item name="colorSecondaryVariant">@color/tivi_mtrl_orange_500</item>
         <item name="colorOnSecondary">#000000</item>
-
-        <item name="colorPrimarySurface">?attr/colorPrimary</item>
-        <item name="colorOnPrimarySurface">?attr/colorOnPrimary</item>
     </style>
 
     <style name="Theme.Tivi.NoActionBar">
@@ -74,7 +74,9 @@
         <item name="android:windowLightNavigationBar" tools:targetApi="o_mr1">@bool/use_light_nav_bar</item>
     </style>
 
-    <style name="Theme.Tivi.Home" parent="Theme.Tivi.Immerse" />
+    <style name="Theme.Tivi.Home" parent="Theme.Tivi.Immerse">
+        <item name="android:windowLightStatusBar">@bool/use_light_status_bar</item>
+    </style>
 
     <style name="Theme.Tivi.ShowDetails" parent="Theme.Tivi.Immerse">
         <item name="android:windowLightStatusBar">@bool/use_light_status_bar</item>
@@ -86,10 +88,6 @@
 
     <style name="ThemeOverlay.Tivi.Primary" parent="ThemeOverlay.AppCompat.DayNight.ActionBar">
         <item name="android:textColorPrimary">?attr/colorOnPrimary</item>
-    </style>
-
-    <style name="ThemeOverlay.Tivi.ThemedSurface" parent="ThemeOverlay.AppCompat.DayNight.ActionBar">
-        <item name="android:textColorPrimary">?attr/colorOnPrimarySurface</item>
     </style>
 
 </resources>

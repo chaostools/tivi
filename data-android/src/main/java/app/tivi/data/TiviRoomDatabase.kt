@@ -24,6 +24,7 @@ import app.tivi.data.entities.EpisodeWatchEntry
 import app.tivi.data.entities.FollowedShowEntry
 import app.tivi.data.entities.LastRequest
 import app.tivi.data.entities.PopularShowEntry
+import app.tivi.data.entities.RecommendedShowEntry
 import app.tivi.data.entities.RelatedShowEntry
 import app.tivi.data.entities.Season
 import app.tivi.data.entities.ShowTmdbImage
@@ -35,29 +36,32 @@ import app.tivi.data.entities.WatchedShowEntry
 import app.tivi.data.views.FollowedShowsLastWatched
 import app.tivi.data.views.FollowedShowsNextToWatch
 import app.tivi.data.views.FollowedShowsWatchStats
+import dev.matrix.roomigrant.GenerateRoomMigrations
 
 @Database(
-        entities = [
-            TiviShow::class,
-            TiviShowFts::class,
-            TrendingShowEntry::class,
-            PopularShowEntry::class,
-            TraktUser::class,
-            WatchedShowEntry::class,
-            FollowedShowEntry::class,
-            Season::class,
-            Episode::class,
-            RelatedShowEntry::class,
-            EpisodeWatchEntry::class,
-            LastRequest::class,
-            ShowTmdbImage::class
-        ],
-        views = [
-            FollowedShowsWatchStats::class,
-            FollowedShowsLastWatched::class,
-            FollowedShowsNextToWatch::class
-        ],
-        version = 23
+    entities = [
+        TiviShow::class,
+        TiviShowFts::class,
+        TrendingShowEntry::class,
+        PopularShowEntry::class,
+        TraktUser::class,
+        WatchedShowEntry::class,
+        FollowedShowEntry::class,
+        Season::class,
+        Episode::class,
+        RelatedShowEntry::class,
+        EpisodeWatchEntry::class,
+        LastRequest::class,
+        ShowTmdbImage::class,
+        RecommendedShowEntry::class
+    ],
+    views = [
+        FollowedShowsWatchStats::class,
+        FollowedShowsLastWatched::class,
+        FollowedShowsNextToWatch::class
+    ],
+    version = 26
 )
 @TypeConverters(TiviTypeConverters::class)
+@GenerateRoomMigrations
 abstract class TiviRoomDatabase : RoomDatabase(), TiviDatabase

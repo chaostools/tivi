@@ -26,11 +26,7 @@ kapt {
 }
 
 dependencies {
-    implementation project(":base")
-
-    api Libs.RxJava.rxJava
-
-    kapt Libs.Dagger.compiler
+    implementation project(':base')
 
     api (Libs.tmdbJava) {
         exclude group: 'org.threeten', module: 'threetenbp'
@@ -38,4 +34,6 @@ dependencies {
     api Libs.threeTenBpNoTzdb
 
     implementation Libs.OkHttp.okhttp
+
+    kapt Libs.Dagger.compiler
 }

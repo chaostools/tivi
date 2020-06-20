@@ -19,95 +19,76 @@ package app.tivi.trakt
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
-import com.uwetrottmann.trakt5.TraktV2
+import androidx.core.net.toUri
+import app.tivi.inject.ApplicationId
 import dagger.Module
 import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.components.ApplicationComponent
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import net.openid.appauth.AuthorizationRequest
 import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.ClientAuthentication
 import net.openid.appauth.ClientSecretBasic
 import net.openid.appauth.ResponseTypeValues
-import okhttp3.Cache
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import java.io.File
 import javax.inject.Named
 import javax.inject.Singleton
 
+@InstallIn(ApplicationComponent::class)
 @Module
-class TraktAuthModule {
-    @Provides
-    fun provideTrakt(
-        @Named("cache") cacheDir: File,
-        interceptor: HttpLoggingInterceptor,
-        @Named("trakt-client-id") clientId: String,
-        traktManager: TraktManager
-    ): TraktV2 {
-        return object : TraktV2(clientId) {
-            override fun setOkHttpClientDefaults(builder: OkHttpClient.Builder) {
-                super.setOkHttpClientDefaults(builder)
-                builder.apply {
-                    addInterceptor(interceptor)
-                    cache(Cache(File(cacheDir, "trakt_cache"), 10 * 1024 * 1024))
-                }
-            }
-        }.apply {
-            traktManager.applyToTraktClient(this)
-        }
-    }
-
-    @Provides
-    fun provideTraktUsersService(traktV2: TraktV2) = traktV2.users()
-
-    @Provides
-    fun provideTraktShowsService(traktV2: TraktV2) = traktV2.shows()
-
-    @Provides
-    fun provideTraktEpisodesService(traktV2: TraktV2) = traktV2.episodes()
-
-    @Provides
-    fun provideTraktSeasonsService(traktV2: TraktV2) = traktV2.seasons()
-
-    @Provides
-    fun provideTraktSyncService(traktV2: TraktV2) = traktV2.sync()
-
-    @Provides
-    fun provideTraktSearchService(traktV2: TraktV2) = traktV2.search()
-
+object TraktAuthModule {
     @Singleton
     @Provides
     fun provideAuthConfig(): AuthorizationServiceConfiguration {
         return AuthorizationServiceConfiguration(
-                Uri.parse("https://trakt.tv/oauth/authorize"),
-                Uri.parse("https://trakt.tv/oauth/token"),
-                null)
+            Uri.parse("https://trakt.tv/oauth/authorize"),
+            Uri.parse("https://trakt.tv/oauth/token"),
+            null
+        )
     }
 
     @Provides
-    fun provideAuthState(traktManager: TraktManager) = traktManager.state.blockingFirst()
+    fun provideAuthState(traktManager: TraktManager) = runBlocking {
+        traktManager.state.first()
+    }
 
     @Provides
     fun provideAuthRequest(
         serviceConfig: AuthorizationServiceConfiguration,
-        @Named("trakt-client-id") clientId: String
+        @Named("trakt-client-id") clientId: String,
+        @Named("trakt-auth-redirect-uri") redirectUri: String
     ): AuthorizationRequest {
         return AuthorizationRequest.Builder(
-                serviceConfig,
-                clientId,
-                ResponseTypeValues.CODE,
-                Uri.parse(TraktConstants.URI_AUTH_CALLBACK)).build()
+            serviceConfig,
+            clientId,
+            ResponseTypeValues.CODE,
+            redirectUri.toUri()
+        ).build()
     }
 
     @Singleton
+    @Named("trakt-auth-redirect-uri")
     @Provides
-    fun provideClientAuth(@Named("trakt-client-secret") clientSecret: String): ClientAuthentication {
+    fun provideAuthRedirectUri(
+        @ApplicationId applicationId: String
+    ): String = "$applicationId://${TraktConstants.URI_AUTH_CALLBACK_PATH}"
+
+    @Singleton
+    @Provides
+    fun provideClientAuth(
+        @Named("trakt-client-secret") clientSecret: String
+    ): ClientAuthentication {
         return ClientSecretBasic(clientSecret)
     }
 
     @Singleton
     @Provides
     @Named("auth")
-    fun provideAuthSharedPrefs(context: Context): SharedPreferences {
+    fun provideAuthSharedPrefs(
+        @ApplicationContext context: Context
+    ): SharedPreferences {
         return context.getSharedPreferences("trakt_auth", Context.MODE_PRIVATE)
     }
 }

@@ -29,6 +29,7 @@ enum class Genre(val traktValue: String) {
     MYSTERY("mystery");
 
     companion object {
-        fun fromTraktValue(value: String): Genre? = values().firstOrNull { it.traktValue == value }
+        private val values by lazy { values() }
+        fun fromTraktValue(value: String) = values.firstOrNull { it.traktValue == value }
     }
 }

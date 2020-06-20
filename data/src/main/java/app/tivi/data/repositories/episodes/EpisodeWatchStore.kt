@@ -17,35 +17,33 @@
 package app.tivi.data.repositories.episodes
 
 import app.tivi.data.DatabaseTransactionRunner
-import app.tivi.data.daos.EntityInserter
 import app.tivi.data.daos.EpisodeWatchEntryDao
 import app.tivi.data.entities.EpisodeWatchEntry
 import app.tivi.data.entities.PendingAction
 import app.tivi.data.syncers.syncerForEntity
 import app.tivi.util.Logger
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class EpisodeWatchStore @Inject constructor(
-    private val entityInserter: EntityInserter,
     private val transactionRunner: DatabaseTransactionRunner,
     private val episodeWatchEntryDao: EpisodeWatchEntryDao,
     private val logger: Logger
 ) {
     private val episodeWatchSyncer = syncerForEntity(
-            episodeWatchEntryDao,
-            { it.traktId },
-            { entity, id -> entity.copy(id = id ?: 0) },
-            logger
+        episodeWatchEntryDao,
+        { it.traktId },
+        { entity, id -> entity.copy(id = id ?: 0) },
+        logger
     )
 
-    fun observeEpisodeWatches(episodeId: Long): Observable<List<EpisodeWatchEntry>> {
+    fun observeEpisodeWatches(episodeId: Long): Flow<List<EpisodeWatchEntry>> {
         return episodeWatchEntryDao.watchesForEpisodeObservable(episodeId)
     }
 
-    suspend fun save(watch: EpisodeWatchEntry) = entityInserter.insertOrUpdate(episodeWatchEntryDao, watch)
+    suspend fun save(watch: EpisodeWatchEntry) = episodeWatchEntryDao.insertOrUpdate(watch)
 
-    suspend fun save(watches: List<EpisodeWatchEntry>) = entityInserter.insertOrUpdate(episodeWatchEntryDao, watches)
+    suspend fun save(watches: List<EpisodeWatchEntry>) = episodeWatchEntryDao.insertOrUpdate(watches)
 
     suspend fun getEpisodeWatchesForShow(showId: Long) = episodeWatchEntryDao.entriesForShowId(showId)
 
@@ -59,23 +57,32 @@ class EpisodeWatchStore @Inject constructor(
 
     suspend fun getEntriesWithDeleteAction(showId: Long) = episodeWatchEntryDao.entriesForShowIdWithDeletePendingActions(showId)
 
-    suspend fun deleteWatchEntriesWithIds(ids: List<Long>) = episodeWatchEntryDao.deleteWithIds(ids)
+    suspend fun deleteEntriesWithIds(ids: List<Long>) = episodeWatchEntryDao.deleteWithIds(ids)
 
-    suspend fun updateWatchEntriesWithAction(ids: List<Long>, action: PendingAction): Int {
+    suspend fun updateEntriesWithAction(ids: List<Long>, action: PendingAction): Int {
         return episodeWatchEntryDao.updateEntriesToPendingAction(ids, action.value)
     }
 
-    suspend fun addNewShowWatchEntries(showId: Long, watches: List<EpisodeWatchEntry>) = transactionRunner {
+    suspend fun addNewShowWatchEntries(
+        showId: Long,
+        watches: List<EpisodeWatchEntry>
+    ) = transactionRunner {
         val currentWatches = episodeWatchEntryDao.entriesForShowIdWithNoPendingAction(showId)
         episodeWatchSyncer.sync(currentWatches, watches, removeNotMatched = false)
     }
 
-    suspend fun syncShowWatchEntries(showId: Long, watches: List<EpisodeWatchEntry>) = transactionRunner {
+    suspend fun syncShowWatchEntries(
+        showId: Long,
+        watches: List<EpisodeWatchEntry>
+    ) = transactionRunner {
         val currentWatches = episodeWatchEntryDao.entriesForShowIdWithNoPendingAction(showId)
         episodeWatchSyncer.sync(currentWatches, watches)
     }
 
-    suspend fun syncEpisodeWatchEntries(episodeId: Long, watches: List<EpisodeWatchEntry>) = transactionRunner {
+    suspend fun syncEpisodeWatchEntries(
+        episodeId: Long,
+        watches: List<EpisodeWatchEntry>
+    ) = transactionRunner {
         val currentWatches = episodeWatchEntryDao.watchesForEpisode(episodeId)
         episodeWatchSyncer.sync(currentWatches, watches)
     }

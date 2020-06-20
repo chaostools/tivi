@@ -24,18 +24,20 @@ import androidx.room.PrimaryKey
 import app.tivi.data.Entry
 import org.threeten.bp.OffsetDateTime
 
-@Entity(tableName = "watched_entries",
-        indices = [
-            Index(value = ["show_id"], unique = true)
-        ],
-        foreignKeys = [
-            ForeignKey(entity = TiviShow::class,
-                    parentColumns = arrayOf("id"),
-                    childColumns = arrayOf("show_id"),
-                    onUpdate = ForeignKey.CASCADE,
-                    onDelete = ForeignKey.CASCADE
-            )
-        ]
+@Entity(
+    tableName = "watched_entries",
+    indices = [
+        Index(value = ["show_id"], unique = true)
+    ],
+    foreignKeys = [
+        ForeignKey(
+            entity = TiviShow::class,
+            parentColumns = arrayOf("id"),
+            childColumns = arrayOf("show_id"),
+            onUpdate = ForeignKey.CASCADE,
+            onDelete = ForeignKey.CASCADE
+        )
+    ]
 )
 data class WatchedShowEntry(
     @PrimaryKey(autoGenerate = true) override val id: Long = 0,

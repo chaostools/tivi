@@ -17,41 +17,57 @@
 package app.tivi.data.dao
 
 import android.database.sqlite.SQLiteConstraintException
+import app.tivi.data.DatabaseModuleBinds
+import app.tivi.data.DatabaseTest
+import app.tivi.data.TiviDatabase
 import app.tivi.data.daos.EpisodesDao
-import app.tivi.utils.BaseDatabaseTest
+import app.tivi.data.daos.SeasonsDao
 import app.tivi.utils.insertShow
-import app.tivi.utils.runBlockingTest
 import app.tivi.utils.s1
+import app.tivi.utils.s1_episodes
 import app.tivi.utils.s1e1
+import app.tivi.utils.s1e2
+import app.tivi.utils.s1e3
 import app.tivi.utils.showId
+import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.UninstallModules
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runBlockingTest
 import org.hamcrest.CoreMatchers.`is`
 import org.hamcrest.CoreMatchers.nullValue
-import org.junit.Assert.assertThat
+import org.hamcrest.MatcherAssert.assertThat
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
+import javax.inject.Inject
 
-class EpisodesTest : BaseDatabaseTest() {
-    private lateinit var episodeDao: EpisodesDao
+@UninstallModules(DatabaseModuleBinds::class)
+@HiltAndroidTest
+class EpisodesTest : DatabaseTest() {
+    @Inject lateinit var database: TiviDatabase
+    @Inject lateinit var episodeDao: EpisodesDao
+    @Inject lateinit var seasonsDao: SeasonsDao
 
-    override fun setup() {
-        super.setup()
+    @Before
+    fun setup() {
+        hiltRule.inject()
 
         runBlocking {
-            episodeDao = db.episodesDao()
             // We'll assume that there's a show and season in the db
-            insertShow(db)
-            db.seasonsDao().insert(s1)
+            insertShow(database)
+            seasonsDao.insert(s1)
         }
     }
 
     @Test
-    fun insert() = runBlockingTest {
+    fun insert() = testScope.runBlockingTest {
         episodeDao.insert(s1e1)
         assertThat(episodeDao.episodeWithId(s1e1.id), `is`(s1e1))
     }
 
     @Test(expected = SQLiteConstraintException::class)
-    fun insert_withSameTraktId() = runBlockingTest {
+    fun insert_withSameTraktId() = testScope.runBlockingTest {
         episodeDao.insert(s1e1)
         // Make a copy with a 0 id
         val copy = s1e1.copy(id = 0)
@@ -59,23 +75,57 @@ class EpisodesTest : BaseDatabaseTest() {
     }
 
     @Test
-    fun delete() = runBlockingTest {
+    fun delete() = testScope.runBlockingTest {
         episodeDao.insert(s1e1)
-        episodeDao.delete(s1e1)
+        episodeDao.deleteEntity(s1e1)
         assertThat(episodeDao.episodeWithId(s1e1.id), `is`(nullValue()))
     }
 
     @Test
-    fun deleteSeason_deletesEpisode() = runBlockingTest {
+    fun deleteSeason_deletesEpisode() = testScope.runBlockingTest {
         episodeDao.insert(s1e1)
         // Now delete season
-        db.seasonsDao().delete(s1)
+        seasonsDao.deleteEntity(s1)
         assertThat(episodeDao.episodeWithId(s1e1.id), `is`(nullValue()))
     }
 
     @Test
-    fun showIdForEpisodeId() = runBlockingTest {
+    fun showIdForEpisodeId() = testScope.runBlockingTest {
         episodeDao.insert(s1e1)
         assertThat(episodeDao.showIdForEpisodeId(s1e1.id), `is`(showId))
+    }
+
+    @Test
+    fun nextAiredEpisodeAfter() = testScope.runBlockingTest {
+        episodeDao.insertAll(s1_episodes)
+
+        assertThat(
+            episodeDao.observeNextEpisodeForShowAfter(showId, 0, 0)
+                .first()?.episode,
+            `is`(s1e1)
+        )
+
+        assertThat(
+            episodeDao.observeNextEpisodeForShowAfter(showId, 1, 0)
+                .first()?.episode,
+            `is`(s1e2)
+        )
+
+        assertThat(
+            episodeDao.observeNextEpisodeForShowAfter(showId, 1, 1)
+                .first()?.episode,
+            `is`(s1e3)
+        )
+
+        assertThat(
+            episodeDao.observeNextEpisodeForShowAfter(showId, 1, 2)
+                .first()?.episode,
+            nullValue()
+        )
+    }
+
+    @After
+    fun cleanup() {
+        testScope.cleanupTestCoroutines()
     }
 }

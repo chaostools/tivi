@@ -21,7 +21,6 @@ import app.tivi.data.entities.Result
 import app.tivi.data.entities.Success
 import app.tivi.data.entities.TiviShow
 import app.tivi.data.mappers.TraktShowToTiviShow
-import app.tivi.data.mappers.toLambda
 import app.tivi.extensions.toResult
 import com.uwetrottmann.trakt5.enums.Extended
 import com.uwetrottmann.trakt5.enums.IdType
@@ -41,35 +40,39 @@ class TraktShowDataSource @Inject constructor(
 
         if (traktId == null && show.tmdbId != null) {
             // We need to fetch the search for the trakt id
-            val response = searchService.get().idLookup(IdType.TMDB, show.tmdbId.toString(),
-                    Type.SHOW, Extended.NOSEASONS, 1, 1)
-                    .execute()
-                    .toResult { it[0].show?.ids?.trakt }
+            val response = searchService.get().idLookup(
+                IdType.TMDB, show.tmdbId.toString(),
+                Type.SHOW, Extended.NOSEASONS, 1, 1
+            )
+                .execute()
+                .toResult { it[0].show?.ids?.trakt }
             if (response is Success) {
                 traktId = response.get()
             } else if (response is ErrorResult) {
-                return ErrorResult(response.exception)
+                return ErrorResult(response.throwable)
             }
         }
 
         if (traktId == null) {
-            val response = searchService.get().textQueryShow(show.title, null /* years */, null /* genres */,
-                    null /* lang */, show.country /* countries */, null /* runtime */, null /* ratings */,
-                    null /* certs */, show.network /* networks */, null /* status */,
-                    Extended.NOSEASONS, 1, 1)
-                    .execute()
-                    .toResult { it[0].show?.ids?.trakt }
+            val response = searchService.get().textQueryShow(
+                show.title, null /* years */, null /* genres */,
+                null /* lang */, show.country /* countries */, null /* runtime */, null /* ratings */,
+                null /* certs */, show.network /* networks */, null /* status */,
+                Extended.NOSEASONS, 1, 1
+            )
+                .execute()
+                .toResult { it[0].show?.ids?.trakt }
             if (response is Success) {
                 traktId = response.get()
             } else if (response is ErrorResult) {
-                return ErrorResult(response.exception)
+                return ErrorResult(response.throwable)
             }
         }
 
         return if (traktId != null) {
             showService.get().summary(traktId.toString(), Extended.FULL)
-                    .execute()
-                    .toResult(mapper.toLambda())
+                .execute()
+                .toResult(mapper::map)
         } else {
             ErrorResult(IllegalArgumentException("Trakt ID for show does not exist: [$show]"))
         }

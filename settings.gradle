@@ -15,13 +15,42 @@
  *
  */
 
+plugins {
+    id 'com.gradle.enterprise' version '3.0'
+}
+
+gradleEnterprise {
+    buildScan {
+        termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+        termsOfServiceAgree = 'yes'
+    }
+}
+
 include ':base'
 include ':base-android'
+include ':common-ui-view'
+include ':common-ui-resources'
+include ':common-ui-compose'
+include ':common-layouts'
+include ':common-epoxy'
+include ':common-imageloading'
+include ':common-databinding'
+include ':common-entrygrid'
 include ':data'
 include ':data-android'
 include ':trakt'
 include ':trakt-auth'
 include ':tmdb'
 include ':tasks'
-include ':interactors'
+include ':domain'
+include ':ui-discover'
+include ':ui-showdetails'
+include ':ui-episodedetails'
+include ':ui-followed'
+include ':ui-watched'
+include ':ui-trending'
+include ':ui-popular'
+include ':ui-recommended'
+include ':ui-search'
+include ':ui-account'
 include ':app'

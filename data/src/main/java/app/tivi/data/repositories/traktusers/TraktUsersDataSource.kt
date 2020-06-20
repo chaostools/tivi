@@ -19,7 +19,6 @@ package app.tivi.data.repositories.traktusers
 import app.tivi.data.entities.Result
 import app.tivi.data.entities.TraktUser
 import app.tivi.data.mappers.UserToTraktUser
-import app.tivi.data.mappers.toLambda
 import app.tivi.extensions.executeWithRetry
 import app.tivi.extensions.toResult
 import com.uwetrottmann.trakt5.entities.UserSlug
@@ -34,7 +33,7 @@ class TraktUsersDataSource @Inject constructor(
 ) {
     suspend fun getUser(slug: String): Result<TraktUser> {
         return usersService.get().profile(UserSlug(slug), Extended.FULL)
-                    .executeWithRetry()
-                    .toResult(mapper.toLambda())
+            .executeWithRetry()
+            .toResult(mapper::map)
     }
 }

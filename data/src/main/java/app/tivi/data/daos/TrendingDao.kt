@@ -22,13 +22,17 @@ import androidx.room.Query
 import androidx.room.Transaction
 import app.tivi.data.entities.TrendingShowEntry
 import app.tivi.data.resultentities.TrendingEntryWithShow
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
 
 @Dao
-abstract class TrendingDao : PaginatedEntryDao<TrendingShowEntry, TrendingEntryWithShow> {
+abstract class TrendingDao : PaginatedEntryDao<TrendingShowEntry, TrendingEntryWithShow>() {
+    @Transaction
+    @Query("SELECT * FROM trending_shows WHERE page = :page ORDER BY watchers DESC, id ASC")
+    abstract fun entriesObservable(page: Int): Flow<List<TrendingShowEntry>>
+
     @Transaction
     @Query("SELECT * FROM trending_shows ORDER BY page ASC, watchers DESC, id ASC LIMIT :count OFFSET :offset")
-    abstract fun entriesObservable(count: Int, offset: Int): Observable<List<TrendingEntryWithShow>>
+    abstract fun entriesObservable(count: Int, offset: Int): Flow<List<TrendingEntryWithShow>>
 
     @Transaction
     @Query("SELECT * FROM trending_shows ORDER BY page ASC, watchers DESC, id ASC")

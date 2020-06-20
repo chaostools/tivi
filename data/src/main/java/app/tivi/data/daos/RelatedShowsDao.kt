@@ -21,13 +21,17 @@ import androidx.room.Query
 import androidx.room.Transaction
 import app.tivi.data.entities.RelatedShowEntry
 import app.tivi.data.resultentities.RelatedShowEntryWithShow
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
 
 @Dao
-abstract class RelatedShowsDao : PairEntryDao<RelatedShowEntry, RelatedShowEntryWithShow> {
+abstract class RelatedShowsDao : PairEntryDao<RelatedShowEntry, RelatedShowEntryWithShow>() {
     @Transaction
     @Query("SELECT * FROM related_shows WHERE show_id = :showId ORDER BY order_index")
     abstract override fun entries(showId: Long): List<RelatedShowEntry>
+
+    @Transaction
+    @Query("SELECT * FROM related_shows WHERE show_id = :showId ORDER BY order_index")
+    abstract fun entriesObservable(showId: Long): Flow<List<RelatedShowEntry>>
 
     @Transaction
     @Query("SELECT * FROM related_shows WHERE show_id = :showId ORDER BY order_index")
@@ -35,8 +39,11 @@ abstract class RelatedShowsDao : PairEntryDao<RelatedShowEntry, RelatedShowEntry
 
     @Transaction
     @Query("SELECT * FROM related_shows WHERE show_id = :showId ORDER BY order_index")
-    abstract override fun entriesWithShowsObservable(showId: Long): Observable<List<RelatedShowEntryWithShow>>
+    abstract override fun entriesWithShowsObservable(showId: Long): Flow<List<RelatedShowEntryWithShow>>
 
     @Query("DELETE FROM related_shows WHERE show_id = :showId")
     abstract override suspend fun deleteWithShowId(showId: Long)
+
+    @Query("DELETE FROM related_shows")
+    abstract suspend fun deleteAll()
 }

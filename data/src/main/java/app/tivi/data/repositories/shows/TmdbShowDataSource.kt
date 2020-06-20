@@ -20,7 +20,6 @@ import app.tivi.data.entities.ErrorResult
 import app.tivi.data.entities.Result
 import app.tivi.data.entities.TiviShow
 import app.tivi.data.mappers.TmdbShowToTiviShow
-import app.tivi.data.mappers.toLambda
 import app.tivi.extensions.executeWithRetry
 import app.tivi.extensions.toResult
 import com.uwetrottmann.tmdb2.Tmdb
@@ -34,8 +33,8 @@ class TmdbShowDataSource @Inject constructor(
         val tmdbId = show.tmdbId
         return if (tmdbId != null) {
             tmdb.tvService().tv(tmdbId, null)
-                    .executeWithRetry()
-                    .toResult(mapper.toLambda())
+                .executeWithRetry()
+                .toResult(mapper::map)
         } else {
             ErrorResult(IllegalArgumentException("TmdbId for show does not exist [$show]"))
         }

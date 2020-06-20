@@ -31,6 +31,11 @@ annotation class Tmdb
 @Retention(AnnotationRetention.RUNTIME)
 @Qualifier
 @MustBeDocumented
+annotation class ForStore
+
+@Retention(AnnotationRetention.RUNTIME)
+@Qualifier
+@MustBeDocumented
 annotation class MediumDate
 
 @Retention(AnnotationRetention.RUNTIME)
@@ -46,9 +51,9 @@ annotation class ShortDate
 @Retention(AnnotationRetention.RUNTIME)
 @Qualifier
 @MustBeDocumented
-annotation class PerActivity
+annotation class ShortTime
 
 @Retention(AnnotationRetention.RUNTIME)
 @Qualifier
 @MustBeDocumented
-annotation class PerApplication
+annotation class ApplicationId

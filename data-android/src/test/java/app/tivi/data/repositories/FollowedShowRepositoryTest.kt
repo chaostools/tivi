@@ -16,19 +16,15 @@
 
 package app.tivi.data.repositories
 
-import app.tivi.data.TiviEntityInserter
+import app.tivi.data.DatabaseModuleBinds
+import app.tivi.data.DatabaseTest
+import app.tivi.data.TiviDatabase
 import app.tivi.data.daos.FollowedShowsDao
+import app.tivi.data.entities.ErrorResult
 import app.tivi.data.entities.Success
-import app.tivi.data.repositories.followedshows.FollowedShowsDataSource
-import app.tivi.data.repositories.followedshows.FollowedShowsLastRequestStore
+import app.tivi.data.repositories.episodes.EpisodeDataSourceBinds
 import app.tivi.data.repositories.followedshows.FollowedShowsRepository
-import app.tivi.data.repositories.followedshows.FollowedShowsStore
-import app.tivi.data.repositories.shows.ShowRepository
-import app.tivi.data.repositories.shows.ShowStore
-import app.tivi.trakt.TraktAuthState
-import app.tivi.util.Logger
-import app.tivi.utils.BaseDatabaseTest
-import app.tivi.utils.TestTransactionRunner
+import app.tivi.data.repositories.followedshows.TraktFollowedShowsDataSource
 import app.tivi.utils.followedShow1Local
 import app.tivi.utils.followedShow1Network
 import app.tivi.utils.followedShow1PendingDelete
@@ -37,110 +33,113 @@ import app.tivi.utils.followedShow2Local
 import app.tivi.utils.followedShow2Network
 import app.tivi.utils.insertFollowedShow
 import app.tivi.utils.insertShow
-import app.tivi.utils.runBlockingTest
 import app.tivi.utils.show
 import app.tivi.utils.show2
+import dagger.hilt.android.testing.HiltAndroidTest
+import dagger.hilt.android.testing.UninstallModules
 import io.mockk.coEvery
-import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runBlockingTest
+import org.hamcrest.MatcherAssert.assertThat
 import org.hamcrest.Matchers.`is`
-import org.junit.Assert.assertThat
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
-import javax.inject.Provider
+import javax.inject.Inject
 
-class FollowedShowRepositoryTest : BaseDatabaseTest() {
-    private lateinit var followShowsDao: FollowedShowsDao
+@UninstallModules(DatabaseModuleBinds::class, EpisodeDataSourceBinds::class)
+@HiltAndroidTest
+class FollowedShowRepositoryTest : DatabaseTest() {
+    @Inject lateinit var followShowsDao: FollowedShowsDao
+    @Inject lateinit var repository: FollowedShowsRepository
+    @Inject lateinit var database: TiviDatabase
+    @Inject lateinit var traktDataSource: TraktFollowedShowsDataSource
 
-    private lateinit var traktDataSource: FollowedShowsDataSource
-    private lateinit var showRepository: ShowRepository
+    @Before
+    fun setup() {
+        hiltRule.inject()
 
-    private lateinit var repository: FollowedShowsRepository
-
-    override fun setup() {
-        super.setup()
-
-        runBlockingTest {
+        runBlocking {
             // We'll assume that there's a show in the db
-            insertShow(db)
-
-            followShowsDao = db.followedShowsDao()
-
-            showRepository = mockk(relaxUnitFun = true)
-            coEvery { showRepository.needsUpdate(any()) } returns true
-            coEvery { showRepository.needsInitialUpdate(any()) } returns true
-            coEvery { showRepository.needsImagesUpdate(any(), any()) } returns true
-
-            val logger = mockk<Logger>(relaxUnitFun = true)
-            val txRunner = TestTransactionRunner
-            val entityInserter = TiviEntityInserter(txRunner, logger)
-            traktDataSource = mockk()
-
-            repository = FollowedShowsRepository(
-                    FollowedShowsStore(txRunner, entityInserter, db.followedShowsDao(), logger),
-                    FollowedShowsLastRequestStore(db.lastRequestDao()),
-                    ShowStore(entityInserter, db.showDao(), db.showFtsDao(), db.showImagesDao(), txRunner),
-                    traktDataSource,
-                    showRepository,
-                    Provider { TraktAuthState.LOGGED_IN },
-                    logger
-            )
+            insertShow(database)
         }
     }
 
     @Test
-    fun testSync() = runBlockingTest {
-        coEvery { traktDataSource.getFollowedListId() } returns 0
+    fun testSync() = testScope.runBlockingTest {
+        coEvery { traktDataSource.getFollowedListId() } returns Success(0)
         coEvery { traktDataSource.getListShows(0) } returns Success(listOf(followedShow1Network to show))
 
         repository.syncFollowedShows()
 
-        assertThat(repository.getFollowedShows(), `is`(listOf(followedShow1Local)))
+        assertThat(
+            repository.getFollowedShows(),
+            `is`(listOf(followedShow1Local))
+        )
     }
 
     @Test
-    fun testSync_emptyResponse() = runBlockingTest {
-        insertFollowedShow(db)
+    fun testSync_emptyResponse() = testScope.runBlockingTest {
+        insertFollowedShow(database)
 
-        coEvery { traktDataSource.getFollowedListId() } returns 0
+        coEvery { traktDataSource.getFollowedListId() } returns Success(0)
         coEvery { traktDataSource.getListShows(0) } returns Success(emptyList())
 
         repository.syncFollowedShows()
 
-        assertThat(repository.getFollowedShows(), `is`(emptyList()))
+        assertThat(
+            repository.getFollowedShows(),
+            `is`(emptyList())
+        )
     }
 
     @Test
-    fun testSync_responseDifferentShow() = runBlockingTest {
-        insertFollowedShow(db)
+    fun testSync_responseDifferentShow() = testScope.runBlockingTest {
+        insertFollowedShow(database)
 
-        coEvery { traktDataSource.getFollowedListId() } returns 0
+        coEvery { traktDataSource.getFollowedListId() } returns Success(0)
         coEvery { traktDataSource.getListShows(0) } returns Success(listOf(followedShow2Network to show2))
 
         repository.syncFollowedShows()
 
-        assertThat(repository.getFollowedShows(), `is`(listOf(followedShow2Local)))
+        assertThat(
+            repository.getFollowedShows(),
+            `is`(listOf(followedShow2Local))
+        )
     }
 
     @Test
-    fun testSync_pendingDelete() = runBlockingTest {
+    fun testSync_pendingDelete() = testScope.runBlockingTest {
         followShowsDao.insert(followedShow1PendingDelete)
 
-        // Return null for the list ID so that we disable syncing
-        coEvery { traktDataSource.getFollowedListId() } returns null
+        // Return error for the list ID so that we disable syncing
+        coEvery { traktDataSource.getFollowedListId() } returns ErrorResult(IllegalArgumentException())
 
         repository.syncFollowedShows()
 
-        assertThat(repository.getFollowedShows(), `is`(emptyList()))
+        assertThat(
+            repository.getFollowedShows(),
+            `is`(emptyList())
+        )
     }
 
     @Test
-    fun testSync_pendingAdd() = runBlockingTest {
+    fun testSync_pendingAdd() = testScope.runBlockingTest {
         followShowsDao.insert(followedShow1PendingUpload)
 
-        // Return null for the list ID so that we disable syncing
-        coEvery { traktDataSource.getFollowedListId() } returns null
+        // Return an error for the list ID so that we disable syncing
+        coEvery { traktDataSource.getFollowedListId() } returns ErrorResult(IllegalArgumentException())
 
         repository.syncFollowedShows()
 
-        assertThat(repository.getFollowedShows(), `is`(listOf(followedShow1Local)))
+        assertThat(
+            repository.getFollowedShows(),
+            `is`(listOf(followedShow1Local))
+        )
+    }
+
+    @After
+    fun cleanup() {
+        testScope.cleanupTestCoroutines()
     }
 }

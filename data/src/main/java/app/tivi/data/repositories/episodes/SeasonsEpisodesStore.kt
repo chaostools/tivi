@@ -17,44 +17,54 @@
 package app.tivi.data.repositories.episodes
 
 import app.tivi.data.DatabaseTransactionRunner
-import app.tivi.data.daos.EntityInserter
 import app.tivi.data.daos.EpisodesDao
 import app.tivi.data.daos.SeasonsDao
 import app.tivi.data.entities.Episode
 import app.tivi.data.entities.Season
+import app.tivi.data.resultentities.EpisodeWithSeason
 import app.tivi.data.resultentities.SeasonWithEpisodesAndWatches
 import app.tivi.data.syncers.syncerForEntity
 import app.tivi.util.Logger
-import io.reactivex.Observable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import javax.inject.Inject
 
 class SeasonsEpisodesStore @Inject constructor(
-    private val entityInserter: EntityInserter,
     private val transactionRunner: DatabaseTransactionRunner,
     private val seasonsDao: SeasonsDao,
     private val episodesDao: EpisodesDao,
     private val logger: Logger
 ) {
     private val seasonSyncer = syncerForEntity(
-            seasonsDao,
-            { it.traktId },
-            { entity, id -> entity.copy(id = id ?: 0) },
-            logger
+        seasonsDao,
+        { it.traktId },
+        { entity, id -> entity.copy(id = id ?: 0) },
+        logger
     )
 
     private val episodeSyncer = syncerForEntity(
-            episodesDao,
-            { it.traktId },
-            { entity, id -> entity.copy(id = id ?: 0) },
-            logger
+        episodesDao,
+        { it.traktId },
+        { entity, id -> entity.copy(id = id ?: 0) },
+        logger
     )
 
-    fun observeEpisode(episodeId: Long): Observable<Episode> {
+    fun observeEpisode(episodeId: Long): Flow<EpisodeWithSeason> {
         return episodesDao.episodeWithIdObservable(episodeId)
     }
 
-    fun observeShowSeasonsWithEpisodes(showId: Long): Observable<List<SeasonWithEpisodesAndWatches>> {
+    fun observeShowSeasonsWithEpisodes(showId: Long): Flow<List<SeasonWithEpisodesAndWatches>> {
         return seasonsDao.seasonsWithEpisodesForShowId(showId)
+    }
+
+    fun observeShowNextEpisodeToWatch(showId: Long): Flow<EpisodeWithSeason?> {
+        return episodesDao.observeLatestWatchedEpisodeForShowId(showId).flatMapLatest {
+            episodesDao.observeNextAiredEpisodeForShowAfter(
+                showId,
+                it?.season?.number ?: 0,
+                it?.episode?.number ?: 0
+            )
+        }
     }
 
     /**
@@ -79,13 +89,16 @@ class SeasonsEpisodesStore @Inject constructor(
         seasonsDao.updateSeasonIgnoreFlag(seasonId, !followed)
     }
 
-    suspend fun updatePreviousSeasonFollowed(seasonId: Long, followed: Boolean) = transactionRunner {
+    suspend fun updatePreviousSeasonFollowed(
+        seasonId: Long,
+        followed: Boolean
+    ) = transactionRunner {
         for (id in seasonsDao.showPreviousSeasonIds(seasonId)) {
             seasonsDao.updateSeasonIgnoreFlag(id, !followed)
         }
     }
 
-    suspend fun save(episode: Episode) = entityInserter.insertOrUpdate(episodesDao, episode)
+    suspend fun save(episode: Episode) = episodesDao.insertOrUpdate(episode)
 
     suspend fun save(showId: Long, data: Map<Season, List<Episode>>) = transactionRunner {
         seasonSyncer.sync(seasonsDao.seasonsForShowId(showId), data.keys)
